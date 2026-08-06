@@ -2,23 +2,26 @@ name: CI
 on:
   push: {}
   pull_request: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   run:
-    runs-on: macos-15
+    runs-on: macos-26
     name: Xcode ${{ matrix.xcode }}
     strategy:
       matrix:
-        xcode: ["16.4", "26.2"]
+        xcode: ["26.2", "26.6"]
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Resolve
         run: swift package resolve
       - name: Build
         run: swift build
       - name: Test
-        run: set -o pipefail && swift test 2>&1 | xcpretty
+        run: set -o pipefail && swift test 2>&1 | xcbeautify
       - name: Gen fixtures
         run: scripts/gen-fixtures.sh
       - name: Check fixtures
@@ -27,10 +30,52 @@ jobs:
         env:
           GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: scripts/build-fixtures.sh
-  run-linux:
-    runs-on: ubuntu-latest
-    name: Linux
+  linux:
+    name: Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    defaults:
+      run:
+        shell: bash
+    permissions:
+      contents: read
+      actions: write
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
+        with:
+          swift-version: "6.3.3"
       - name: Build and run tests
         run: swift test --enable-test-discovery
+      - name: Build release binary
+        # Hardened, self-contained build:
+        #  - static Swift stdlib: no toolchain runtime dependency at runtime
+        #  - lld: proper R E / RW segments (system ld.bfd emits a single RWX LOAD segment)
+        #  - BIND_NOW + noexecstack: full RELRO, no executable stack
+        run: |
+          swift build --product xcodegen -c release --disable-sandbox \
+          --static-swift-stdlib \
+          -Xswiftc -use-ld=lld \
+          -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
+      - name: Strip debug info
+        run: strip --strip-debug "$(swift build -c release --show-bin-path)/xcodegen"
+      - name: Smoke test
+        run: BIN="$(swift build -c release --show-bin-path)/xcodegen" && "$BIN" --version
+      - name: Resolve binary path
+        id: binpath
+        run: echo "path=$(swift build -c release --show-bin-path)/xcodegen" >> "$GITHUB_OUTPUT"
+      - name: Upload Linux binary artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: xcodegen-linux-${{ matrix.arch }}
+          path: ${{ steps.binpath.outputs.path }}
+          if-no-files-found: error
