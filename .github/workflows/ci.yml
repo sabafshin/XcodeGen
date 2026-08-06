@@ -15,7 +15,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Resolve
         run: swift package resolve
       - name: Build
@@ -48,7 +48,7 @@ jobs:
       contents: read
       actions: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2.4.0
@@ -74,7 +74,7 @@ jobs:
         id: binpath
         run: echo "path=$(swift build -c release --show-bin-path)/xcodegen" >> "$GITHUB_OUTPUT"
       - name: Upload Linux binary artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: xcodegen-linux-${{ matrix.arch }}
           path: ${{ steps.binpath.outputs.path }}

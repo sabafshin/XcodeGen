@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/kylef/PathKit.git", from: "1.0.1"),
-        .package(url: "https://github.com/jpsim/Yams.git", exact: "5.1.3"), // pinned: Yams >=5.2.0 rejects duplicate keys, which XcodeGen relies on for settings merging
+        .package(url: "https://github.com/jpsim/Yams.git", exact: "5.1.3"),
         .package(url: "https://github.com/yonaskolb/JSONUtilities.git", from: "4.2.0"),
         .package(url: "https://github.com/kylef/Spectre.git", from: "0.10.1"),
         .package(url: "https://github.com/onevcat/Rainbow.git", from: "4.2.1"),
