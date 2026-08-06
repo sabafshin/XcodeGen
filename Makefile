@@ -25,7 +25,7 @@ build:
 # Linux CI build: single-arch, static Swift stdlib, hardened
 # (lld for proper R E / RW segments, BIND_NOW, noexecstack).
 # --product scopes the build so --static-swift-stdlib doesn't hit test targets.
-SWIFT_BUILD_FLAGS_LINUX = --product xcodegen --disable-sandbox -c release --static-swift-stdlib -Xswiftc -use-ld=lld -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
+SWIFT_BUILD_FLAGS_LINUX = --product xcodegen -c release --static-swift-stdlib -Xswiftc -use-ld=lld -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
 
 build-linux:
 	swift build $(SWIFT_BUILD_FLAGS_LINUX)
