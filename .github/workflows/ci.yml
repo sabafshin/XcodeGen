@@ -57,15 +57,9 @@ jobs:
       - name: Build and run tests
         run: swift test --enable-test-discovery
       - name: Build release binary
-        # Hardened, self-contained build:
-        #  - static Swift stdlib: no toolchain runtime dependency at runtime
-        #  - lld: proper R E / RW segments (system ld.bfd emits a single RWX LOAD segment)
-        #  - BIND_NOW + noexecstack: full RELRO, no executable stack
-        run: |
-          swift build --product xcodegen -c release --disable-sandbox \
-          --static-swift-stdlib \
-          -Xswiftc -use-ld=lld \
-          -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
+        # Hardened, self-contained Linux build (see Makefile build-linux):
+        # static Swift stdlib, lld (proper R E / RW segments), BIND_NOW, noexecstack
+        run: make build-linux
       - name: Strip debug info
         run: strip --strip-debug "$(swift build -c release --show-bin-path)/xcodegen"
       - name: Smoke test

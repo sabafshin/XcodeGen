@@ -11,7 +11,7 @@ SWIFT_BUILD_FLAGS = --disable-sandbox -c release --arch arm64 --arch x86_64
 BUILD_PATH = $(shell swift build $(SWIFT_BUILD_FLAGS) --show-bin-path)
 EXECUTABLE_PATH = $(BUILD_PATH)/$(EXECUTABLE_NAME)
 
-.PHONY: install build uninstall format_code release
+.PHONY: install build build-linux uninstall format_code release
 
 install: build
 	mkdir -p $(PREFIX)/bin
@@ -21,6 +21,14 @@ install: build
 
 build:
 	swift build $(SWIFT_BUILD_FLAGS)
+
+# Linux CI build: single-arch, static Swift stdlib, hardened
+# (lld for proper R E / RW segments, BIND_NOW, noexecstack).
+# --product scopes the build so --static-swift-stdlib doesn't hit test targets.
+SWIFT_BUILD_FLAGS_LINUX = --product xcodegen --disable-sandbox -c release --static-swift-stdlib -Xswiftc -use-ld=lld -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
+
+build-linux:
+	swift build $(SWIFT_BUILD_FLAGS_LINUX)
 
 uninstall:
 	rm -f $(INSTALL_PATH)
