@@ -1,0 +1,18 @@
+# Dependabot version updates
+version: 2
+updates:
+  # GitHub Actions — updates SHA-pinned actions when their version comments
+  # (# vN) indicate a newer tag exists
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  # Swift Package Manager — tracks Package.swift / Package.resolved
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
