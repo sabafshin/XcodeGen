@@ -58,16 +58,19 @@ jobs:
         run: strip --strip-debug "$(swift build -c release --show-bin-path)/xcodegen"
       - name: Smoke test
         run: BIN="$(swift build -c release --show-bin-path)/xcodegen" && "$BIN" --version
-      - name: Package tarball
+      - name: Package tarball and raw binary
         run: |
           mkdir -p dist
           cp "$(swift build -c release --show-bin-path)/xcodegen" dist/xcodegen
           tar -C dist -czf "xcodegen-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz" xcodegen
+          # raw binary asset for direct download / aqua format:raw installs
+          cp "$(swift build -c release --show-bin-path)/xcodegen" "dist/xcodegen-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}"
+          rm dist/xcodegen
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: xcodegen-linux-${{ matrix.arch }}
-          path: xcodegen-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz
+          path: dist/*
           if-no-files-found: error
   release:
     name: Create GitHub Release
@@ -78,6 +81,7 @@ jobs:
         shell: bash
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Determine version
         id: version
@@ -103,6 +107,10 @@ jobs:
         run: |
           cd dist
           sha256sum xcodegen-*.tar.gz > "xcodegen-${{ steps.version.outputs.version }}-checksums.txt"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -110,5 +118,5 @@ jobs:
           cd dist
           gh release create "${{ steps.version.outputs.tag }}" --repo "$GITHUB_REPOSITORY" \
             --title "XcodeGen ${{ steps.version.outputs.version }} (Linux)" \
-            --notes "Linux binaries for XcodeGen v${{ steps.version.outputs.version }} (upstream: yonaskolb/XcodeGen). Self-contained static build - no Swift runtime required." \
-            xcodegen-*.tar.gz "xcodegen-${{ steps.version.outputs.version }}-checksums.txt"
+            --notes "Linux binaries for XcodeGen v${{ steps.version.outputs.version }} (upstream: yonaskolb/XcodeGen). Self-contained static build - no Swift runtime required. Assets: tar.gz (aqua), raw binary, sha256 checksums. Attestations attached for supply-chain verification." \
+            xcodegen-* "xcodegen-${{ steps.version.outputs.version }}-checksums.txt"
