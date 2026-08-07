@@ -35,8 +35,6 @@ jobs:
       - name: Check fixtures
         run: scripts/diff-fixtures.sh
       - name: Build fixtures
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: scripts/build-fixtures.sh
   linux:
     name: Linux ${{ matrix.arch }}

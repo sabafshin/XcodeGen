@@ -57,8 +57,12 @@ jobs:
             VERSION="${INPUT_VERSION}"
           fi
           if [[ -z "${VERSION}" ]]; then
-            # default: latest tag in the checked-out source (fork carries upstream tags)
+            git fetch --quiet --tags --force https://github.com/yonaskolb/XcodeGen.git
             VERSION="$(git describe --tags --abbrev=0 | sed 's/^v//')"
+          fi
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version: ${VERSION}" >&2
+            exit 1
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
@@ -75,9 +79,9 @@ jobs:
         run: |
           mkdir -p dist
           cp "$(swift build -c release --show-bin-path)/xcodegen" dist/xcodegen
-          tar -C dist -czf "xcodegen-${VERSION}-linux-${ARCH}.tar.gz" xcodegen
-          cp "$(swift build -c release --show-bin-path)/xcodegen" "dist/xcodegen-${VERSION}-linux-${ARCH}"
-          rm dist/xcodegen
+          cp -R SettingPresets dist/SettingPresets
+          tar -czf "dist/xcodegen-${VERSION}-linux-${ARCH}.tar.gz" -C dist xcodegen SettingPresets
+          cp dist/xcodegen "dist/xcodegen-${VERSION}-linux-${ARCH}"
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -108,12 +112,25 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum xcodegen-*.tar.gz > "xcodegen-${VERSION}-checksums.txt"
+          chmod +x xcodegen-*-linux-*
+          sha256sum xcodegen-*.tar.gz xcodegen-*-linux-* > "xcodegen-${VERSION}-checksums.txt"
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: dist/*
+      - name: Check release exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
       - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
         uses: softprops/action-gh-release@fe965f7af51af5f2602596916f38a38df2e33de0 # v3.0.2
         with:
           tag_name: ${{ needs.build.outputs.tag }}
