@@ -77,14 +77,17 @@ jobs:
       - name: Build release binary (static)
         run: make build-linux-static
       - name: Smoke test
-        run: BIN="$(swift build -c release --show-bin-path)/xcodegen" && "$BIN" --version
+        run: |
+          BIN="$(make -s build-linux-static-bin-path)/xcodegen"
+          "$BIN" --version
       - name: Package tarball and raw binary
         env:
           VERSION: ${{ steps.version.outputs.version }}
           ARCH: ${{ matrix.arch }}
         run: |
+          BIN="$(make -s build-linux-static-bin-path)/xcodegen"
           mkdir -p dist
-          cp "$(swift build -c release --show-bin-path)/xcodegen" dist/xcodegen
+          cp "$BIN" dist/xcodegen
           cp -R SettingPresets dist/SettingPresets
           tar -czf "dist/xcodegen-${VERSION}-linux-${ARCH}.tar.gz" -C dist xcodegen SettingPresets
           cp dist/xcodegen "dist/xcodegen-${VERSION}-linux-${ARCH}"
