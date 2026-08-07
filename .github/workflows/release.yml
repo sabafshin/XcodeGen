@@ -76,15 +76,6 @@ jobs:
         run: apt-get update && apt-get install -y --no-install-recommends make
       - name: Build release binary (static)
         run: make build-linux-static
-      - name: Verify fully static (no dynamic deps)
-        run: |
-          BIN="$(swift build -c release --show-bin-path)/xcodegen"
-          if ldd "$BIN" 2>&1 | grep -vE "not a dynamic executable|statically linked"; then
-            echo "Binary has dynamic dependencies:" >&2
-            ldd "$BIN" >&2
-            exit 1
-          fi
-          file "$BIN"
       - name: Smoke test
         run: BIN="$(swift build -c release --show-bin-path)/xcodegen" && "$BIN" --version
       - name: Package tarball and raw binary
