@@ -41,17 +41,19 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
+          if [[ "${EVENT_NAME}" == "push" ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${INPUT_VERSION}"
           fi
-          if [[ -z "$VERSION" ]]; then
+          if [[ -z "${VERSION}" ]]; then
             VERSION="$(gh api repos/yonaskolb/XcodeGen/releases/latest --jq .tag_name | sed 's/^v//')"
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
       - name: Build release binary
         run: make build-linux
       - name: Strip debug info
@@ -59,12 +61,15 @@ jobs:
       - name: Smoke test
         run: BIN="$(swift build -c release --show-bin-path)/xcodegen" && "$BIN" --version
       - name: Package tarball and raw binary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist
           cp "$(swift build -c release --show-bin-path)/xcodegen" dist/xcodegen
-          tar -C dist -czf "xcodegen-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}.tar.gz" xcodegen
+          tar -C dist -czf "xcodegen-${VERSION}-linux-${ARCH}.tar.gz" xcodegen
           # raw binary asset for direct download / aqua format:raw installs
-          cp "$(swift build -c release --show-bin-path)/xcodegen" "dist/xcodegen-${{ steps.version.outputs.version }}-linux-${{ matrix.arch }}"
+          cp "$(swift build -c release --show-bin-path)/xcodegen" "dist/xcodegen-${VERSION}-linux-${ARCH}"
           rm dist/xcodegen
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -89,26 +94,30 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
+          if [[ "${EVENT_NAME}" == "push" ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            VERSION="${{ github.event.inputs.version }}"
+            VERSION="${INPUT_VERSION}"
           fi
-          if [[ -z "$VERSION" ]]; then
+          if [[ -z "${VERSION}" ]]; then
             VERSION="$(gh api repos/yonaskolb/XcodeGen/releases/latest --jq .tag_name | sed 's/^v//')"
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist
           pattern: xcodegen-linux-*
           merge-multiple: true
       - name: Generate checksums
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           cd dist
-          sha256sum xcodegen-*.tar.gz > "xcodegen-${{ steps.version.outputs.version }}-checksums.txt"
+          sha256sum xcodegen-*.tar.gz > "xcodegen-${VERSION}-checksums.txt"
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -116,9 +125,11 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           cd dist
-          gh release create "${{ steps.version.outputs.tag }}" --repo "$GITHUB_REPOSITORY" \
-            --title "XcodeGen ${{ steps.version.outputs.version }} (Linux)" \
-            --notes "Linux binaries for XcodeGen v${{ steps.version.outputs.version }} (upstream: yonaskolb/XcodeGen). Self-contained static build - no Swift runtime required. Assets: tar.gz (aqua), raw binary, sha256 checksums. Attestations attached for supply-chain verification." \
-            xcodegen-* "xcodegen-${{ steps.version.outputs.version }}-checksums.txt"
+          gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --title "XcodeGen ${VERSION} (Linux)" \
+            --notes "Linux binaries for XcodeGen v${VERSION} (upstream: yonaskolb/XcodeGen). Self-contained static build - no Swift runtime required. Assets: tar.gz (aqua), raw binary, sha256 checksums. Attestations attached for supply-chain verification." \
+            xcodegen-* "xcodegen-${VERSION}-checksums.txt"
