@@ -29,8 +29,16 @@ runs:
         ARCH="$(uname -m)"
         URL="https://download.swift.org/swiftly/linux/swiftly-${SWIFTLY_VERSION}-${ARCH}.tar.gz"
         echo "Downloading swiftly ${SWIFTLY_VERSION} (${ARCH})"
-        curl -fsSL -o "${RUNNER_TEMP}/swiftly.tar.gz" "${URL}"
-        curl -fsSL -o "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${URL}.sig"
+        # Retry with backoff: GitHub-hosted runners occasionally fail to reach
+        # download.swift.org (curl exit 2); arm64/amd64 runner pools differ
+        for attempt in 1 2 3; do
+          if curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 -o "${RUNNER_TEMP}/swiftly.tar.gz" "${URL}"; then
+            break
+          fi
+          echo "Download failed (attempt ${attempt}/3), retrying..." >&2
+          sleep $((attempt * 5))
+        done
+        curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 -o "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${URL}.sig"
         curl -fsSL https://swift.org/keys/all-keys.asc | gpg --import --batch >/dev/null 2>&1
         gpg --batch --verify "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${RUNNER_TEMP}/swiftly.tar.gz"
         sudo tar xzf "${RUNNER_TEMP}/swiftly.tar.gz" -C /usr/local/bin
