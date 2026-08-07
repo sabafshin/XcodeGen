@@ -169,7 +169,7 @@ jobs:
             - Every asset is covered by a Sigstore-signed SLSA build-provenance attestation
 
             Upstream source: [yonaskolb/XcodeGen](https://github.com/yonaskolb/XcodeGen) (macOS binaries are published upstream).
-          generate_release_notes: true
+          generate_release_notes: false
           files: dist/xcodegen-*
           fail_on_unmatched_files: true
           token: ${{ github.token }}
