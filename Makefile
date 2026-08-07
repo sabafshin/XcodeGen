@@ -22,9 +22,7 @@ install: build
 build:
 	swift build $(SWIFT_BUILD_FLAGS)
 
-# Linux CI build: single-arch, static Swift stdlib, hardened
-# (lld for proper R E / RW segments, BIND_NOW, noexecstack).
-# --product scopes the build so --static-swift-stdlib doesn't hit test targets.
+# Linux CI build: static stdlib, lld, hardened
 SWIFT_BUILD_FLAGS_LINUX = --product xcodegen -c release --static-swift-stdlib -Xswiftc -use-ld=lld -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
 
 build-linux:

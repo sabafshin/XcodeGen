@@ -59,6 +59,5 @@ jobs:
         with:
           swift-version: "6.3.3"
       - name: Build and run tests
-        # GeneratedPerformanceTests are timing-based and flaky on shared
-        # runners (RSD threshold exceeded on arm64); skip them on Linux CI
+        # skip flaky timing-based performance tests on shared runners
         run: swift test --enable-test-discovery --skip GeneratedPerformanceTests

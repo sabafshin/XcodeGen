@@ -1,16 +1,5 @@
 name: Setup Swift (Linux)
-description: |
-  Install a pinned Swift toolchain via swiftly directly from download.swift.org.
-
-  Why not swift-actions/setup-swift: its compiled dist hardcodes an
-  AVAILABLE_VERSIONS list (v2.4.0 tops out at 6.2.1), so newer toolchains
-  like 6.3.3 fail with 'Version "X" is not available'. Installing swiftly
-  ourselves fetches the live swift.org release catalog and is pinned to the
-  same swiftly 1.1.3 used for local validation.
-
-  Uses swiftly's default home (~/.local/share/swiftly) and exports the
-  toolchain bin dir via GITHUB_PATH so subsequent workflow steps can run
-  swift/swiftc.
+description: Install a pinned Swift toolchain via swiftly from download.swift.org.
 inputs:
   swift-version:
     description: Swift toolchain version to install (e.g. 6.3.3)
@@ -38,7 +27,6 @@ runs:
         echo "Downloading swiftly ${SWIFTLY_VERSION} (${ARCH})"
         curl -fsSL -o "${RUNNER_TEMP}/swiftly.tar.gz" "${URL}"
         curl -fsSL -o "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${URL}.sig"
-        # Verify against the Swift.org signing keys
         curl -fsSL https://swift.org/keys/all-keys.asc | gpg --import --batch >/dev/null 2>&1
         gpg --batch --verify "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${RUNNER_TEMP}/swiftly.tar.gz"
         sudo tar xzf "${RUNNER_TEMP}/swiftly.tar.gz" -C /usr/local/bin
@@ -58,7 +46,7 @@ runs:
         POST_INSTALL="${RUNNER_TEMP}/swiftly-post-install.sh"
         swiftly install --use "${SWIFT_VERSION}" --assume-yes --post-install-file "${POST_INSTALL}"
         if [[ -f "${POST_INSTALL}" ]]; then
-          # swiftly generates this script to install toolchain deps as root
+          # runs as root to install toolchain deps via apt-get
           sudo bash "${POST_INSTALL}"
         fi
     - name: Resolve toolchain location and add to PATH
@@ -69,6 +57,5 @@ runs:
         export PATH="/usr/local/bin:${PATH}"
         LOCATION="$(swiftly use --print-location)"
         echo "location=${LOCATION}" >> "${GITHUB_OUTPUT}"
-        # the swift/swiftc binaries live under <toolchain>/usr/bin
         echo "${LOCATION}/usr/bin" >> "${GITHUB_PATH}"
         echo "Swift location: ${LOCATION}"

@@ -74,7 +74,6 @@ jobs:
           mkdir -p dist
           cp "$(swift build -c release --show-bin-path)/xcodegen" dist/xcodegen
           tar -C dist -czf "xcodegen-${VERSION}-linux-${ARCH}.tar.gz" xcodegen
-          # raw binary asset for direct download / aqua format:raw installs
           cp "$(swift build -c release --show-bin-path)/xcodegen" "dist/xcodegen-${VERSION}-linux-${ARCH}"
           rm dist/xcodegen
       - name: Upload artifact
@@ -118,7 +117,7 @@ jobs:
           tag_name: ${{ needs.build.outputs.tag }}
           name: XcodeGen ${{ needs.build.outputs.version }} (Linux)
           body: |
-            Linux binaries for XcodeGen v${{ needs.build.outputs.version }} (upstream: yonaskolb/XcodeGen). Self-contained static build - no Swift runtime required. Assets: tar.gz (aqua), raw binary, sha256 checksums. Attestations attached for supply-chain verification.
+            Linux binaries for XcodeGen v${{ needs.build.outputs.version }} (upstream: yonaskolb/XcodeGen). Self-contained static build - no Swift runtime required. Assets: tar.gz, raw binary, sha256 checksums. Attestations attached for supply-chain verification.
           generate_release_notes: true
           files: dist/xcodegen-*
           fail_on_unmatched_files: true
