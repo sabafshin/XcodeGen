@@ -71,6 +71,9 @@ jobs:
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
+      - name: Install make
+        # the swift image ships without make — install via distro package manager
+        run: apt-get update && apt-get install -y --no-install-recommends make
       - name: Build release binary (static)
         run: make build-linux-static
       - name: Verify fully static (no dynamic deps)
