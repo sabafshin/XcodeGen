@@ -40,13 +40,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+          fetch-tags: true
       - uses: ./.github/actions/setup-swift-linux
         with:
           swift-version: "6.3.3"
       - name: Determine version
         id: version
         env:
-          GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
           INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
@@ -56,7 +57,8 @@ jobs:
             VERSION="${INPUT_VERSION}"
           fi
           if [[ -z "${VERSION}" ]]; then
-            VERSION="$(gh api repos/yonaskolb/XcodeGen/releases/latest --jq .tag_name | sed 's/^v//')"
+            # default: latest tag in the checked-out source (fork carries upstream tags)
+            VERSION="$(git describe --tags --abbrev=0 | sed 's/^v//')"
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
