@@ -35,6 +35,13 @@ build-linux:
 build-linux-static:
 	swift build $(SWIFT_BUILD_FLAGS_LINUX_STATIC)
 
+# Print the build output directory for the static Linux SDK build.
+# Note: without --swift-sdk, `swift build --show-bin-path` returns the default
+# host path (e.g. .build/aarch64-unknown-linux-gnu/release) which does NOT
+# contain the musl build output.
+build-linux-static-bin-path:
+	swift build $(SWIFT_BUILD_FLAGS_LINUX_STATIC) --show-bin-path
+
 uninstall:
 	rm -f $(INSTALL_PATH)
 	rm -rf $(SHARE_PATH)
