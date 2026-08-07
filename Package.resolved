@@ -84,7 +84,7 @@
     {
       "identity" : "yams",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jpsim/Yams.git",
+      "location" : "https://github.com/sabafshin/Yams.git",
       "state" : {
         "revision" : "cdbd58ed35555f632b8ca39adcf400f758d732e9",
         "version" : "5.1.4"
