@@ -59,6 +59,9 @@ jobs:
             VERSION="${INPUT_VERSION}"
           fi
           if [[ -z "${VERSION}" ]]; then
+            # container jobs run as root while actions/checkout creates the
+            # workspace on the host (owned by the runner user) — trust it
+            git config --global --add safe.directory "${GITHUB_WORKSPACE}"
             git fetch --quiet --tags --force https://github.com/yonaskolb/XcodeGen.git
             VERSION="$(git describe --tags --abbrev=0 | sed 's/^v//')"
           fi
