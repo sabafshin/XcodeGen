@@ -45,6 +45,7 @@ jobs:
       - uses: ./.github/actions/setup-swift-linux
         with:
           swift-version: "6.3.3"
+          install-static-sdk: "true"
       - name: Determine version
         id: version
         env:
@@ -66,10 +67,17 @@ jobs:
           fi
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
           echo "tag=v${VERSION}" >> "${GITHUB_OUTPUT}"
-      - name: Build release binary
-        run: make build-linux
-      - name: Strip debug info
-        run: strip --strip-debug "$(swift build -c release --show-bin-path)/xcodegen"
+      - name: Build release binary (static)
+        run: make build-linux-static
+      - name: Verify fully static (no dynamic deps)
+        run: |
+          BIN="$(swift build -c release --show-bin-path)/xcodegen"
+          if ldd "$BIN" 2>&1 | grep -vE "not a dynamic executable|statically linked"; then
+            echo "Binary has dynamic dependencies:" >&2
+            ldd "$BIN" >&2
+            exit 1
+          fi
+          file "$BIN"
       - name: Smoke test
         run: BIN="$(swift build -c release --show-bin-path)/xcodegen" && "$BIN" --version
       - name: Package tarball and raw binary
@@ -113,7 +121,7 @@ jobs:
         run: |
           cd dist
           chmod +x xcodegen-*-linux-*
-          sha256sum xcodegen-*.tar.gz xcodegen-*-linux-* > "xcodegen-${VERSION}-checksums.txt"
+          sha256sum xcodegen-* > "xcodegen-${VERSION}-checksums.txt"
       - name: Attest build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
@@ -165,7 +173,8 @@ jobs:
 
             ### Security
 
-            - Static Swift stdlib, `BIND_NOW` (full RELRO), no executable stack, debug info stripped
+            - Fully static musl build (Swift Static Linux SDK) — zero dynamic dependencies, no runtime libs required
+            - `BIND_NOW` (full RELRO), no executable stack
             - Every asset is covered by a Sigstore-signed SLSA build-provenance attestation
 
             Upstream source: [yonaskolb/XcodeGen](https://github.com/yonaskolb/XcodeGen) (macOS binaries are published upstream).
