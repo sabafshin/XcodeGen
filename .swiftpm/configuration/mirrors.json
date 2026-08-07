@@ -1,0 +1,13 @@
+{
+  "object": [
+    {
+      "original": "https://github.com/kylef/PathKit.git",
+      "mirror": "https://github.com/sabafshin/PathKit.git"
+    },
+    {
+      "original": "https://github.com/jakeheis/SwiftCLI.git",
+      "mirror": "https://github.com/sabafshin/SwiftCLI.git"
+    }
+  ],
+  "version": 1
+}
