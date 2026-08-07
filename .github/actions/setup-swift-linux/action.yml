@@ -64,7 +64,8 @@ runs:
         POST_INSTALL="${RUNNER_TEMP}/swiftly-post-install.sh"
         swiftly install --use "${SWIFT_VERSION}" --assume-yes --post-install-file "${POST_INSTALL}"
         if [[ -f "${POST_INSTALL}" ]]; then
-          bash "${POST_INSTALL}"
+          # swiftly generates this script to install toolchain deps as root
+          sudo bash "${POST_INSTALL}"
         fi
     - name: Resolve toolchain location
       id: location
