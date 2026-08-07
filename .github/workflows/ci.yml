@@ -1,36 +1,61 @@
 name: CI
 on:
-  push: {}
   pull_request: {}
+env:
+  GIT_TERMINAL_PROMPT: 0
+defaults:
+  run:
+    shell: bash
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   run:
-    runs-on: macos-15
+    runs-on: macos-26
     name: Xcode ${{ matrix.xcode }}
     strategy:
       matrix:
-        xcode: ["16.4", "26.2"]
+        xcode: ["26.6"]
+    permissions:
+      contents: read
     env:
       DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Resolve
         run: swift package resolve
       - name: Build
         run: swift build
       - name: Test
-        run: set -o pipefail && swift test 2>&1 | xcpretty
+        run: set -o pipefail && swift test 2>&1 | xcbeautify
       - name: Gen fixtures
         run: scripts/gen-fixtures.sh
       - name: Check fixtures
         run: scripts/diff-fixtures.sh
       - name: Build fixtures
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: scripts/build-fixtures.sh
-  run-linux:
-    runs-on: ubuntu-latest
-    name: Linux
+  linux:
+    name: Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-swift-linux
+        with:
+          swift-version: "6.3.3"
       - name: Build and run tests
-        run: swift test --enable-test-discovery
+        # skip flaky timing-based performance tests on shared runners
+        run: swift test --enable-test-discovery --skip GeneratedPerformanceTests
