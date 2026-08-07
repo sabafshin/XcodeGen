@@ -42,7 +42,6 @@ runs:
           gpg --batch --verify "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${RUNNER_TEMP}/swiftly.tar.gz"
         fi
         sudo tar xzf "${RUNNER_TEMP}/swiftly.tar.gz" -C /usr/local/bin
-        swiftly --version
     - name: Init swiftly
       shell: bash
       env:
