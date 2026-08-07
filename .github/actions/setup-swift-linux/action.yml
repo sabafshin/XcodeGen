@@ -7,6 +7,10 @@ description: |
   like 6.3.3 fail with 'Version "X" is not available'. Installing swiftly
   ourselves fetches the live swift.org release catalog and is pinned to the
   same swiftly 1.1.3 used for local validation.
+
+  Uses swiftly's default home (~/.local/share/swiftly) and exports the
+  toolchain bin dir via GITHUB_PATH so subsequent workflow steps can run
+  swift/swiftc.
 inputs:
   swift-version:
     description: Swift toolchain version to install (e.g. 6.3.3)
@@ -18,7 +22,7 @@ inputs:
     default: "1.1.3"
 outputs:
   swift-location:
-    description: Path to the installed Swift toolchain bin directory
+    description: Path to the installed Swift toolchain (root)
     value: ${{ steps.location.outputs.location }}
 runs:
   using: composite
@@ -35,28 +39,18 @@ runs:
         curl -fsSL -o "${RUNNER_TEMP}/swiftly.tar.gz" "${URL}"
         curl -fsSL -o "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${URL}.sig"
         # Verify against the Swift.org signing keys
-        if ! command -v gpg >/dev/null; then
-          echo "gpg not found; skipping signature verification" >&2
-        else
-          curl -fsSL https://swift.org/keys/all-keys.asc | gpg --import --batch >/dev/null 2>&1
-          gpg --batch --verify "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${RUNNER_TEMP}/swiftly.tar.gz"
-        fi
+        curl -fsSL https://swift.org/keys/all-keys.asc | gpg --import --batch >/dev/null 2>&1
+        gpg --batch --verify "${RUNNER_TEMP}/swiftly.tar.gz.sig" "${RUNNER_TEMP}/swiftly.tar.gz"
         sudo tar xzf "${RUNNER_TEMP}/swiftly.tar.gz" -C /usr/local/bin
     - name: Init swiftly
       shell: bash
-      env:
-        SWIFTLY_HOME_DIR: ${{ runner.temp }}/swiftly-home
-        SWIFTLY_BIN_DIR: ${{ runner.temp }}/swiftly-bin
       run: |
         set -euo pipefail
         export PATH="/usr/local/bin:${PATH}"
         swiftly init --skip-install --assume-yes --quiet-shell-followup --no-modify-profile
-        echo "${SWIFTLY_BIN_DIR}" >> "${GITHUB_PATH}"
     - name: Install Swift toolchain
       shell: bash
       env:
-        SWIFTLY_HOME_DIR: ${{ runner.temp }}/swiftly-home
-        SWIFTLY_BIN_DIR: ${{ runner.temp }}/swiftly-bin
         SWIFT_VERSION: ${{ inputs.swift-version }}
       run: |
         set -euo pipefail
@@ -67,15 +61,14 @@ runs:
           # swiftly generates this script to install toolchain deps as root
           sudo bash "${POST_INSTALL}"
         fi
-    - name: Resolve toolchain location
+    - name: Resolve toolchain location and add to PATH
       id: location
       shell: bash
-      env:
-        SWIFTLY_HOME_DIR: ${{ runner.temp }}/swiftly-home
-        SWIFTLY_BIN_DIR: ${{ runner.temp }}/swiftly-bin
       run: |
         set -euo pipefail
         export PATH="/usr/local/bin:${PATH}"
         LOCATION="$(swiftly use --print-location)"
         echo "location=${LOCATION}" >> "${GITHUB_OUTPUT}"
+        # the swift/swiftc binaries live under <toolchain>/usr/bin
+        echo "${LOCATION}/usr/bin" >> "${GITHUB_PATH}"
         echo "Swift location: ${LOCATION}"
