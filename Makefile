@@ -25,8 +25,15 @@ build:
 # Linux CI build: static stdlib, lld, hardened
 SWIFT_BUILD_FLAGS_LINUX = --product xcodegen -c release --static-swift-stdlib -Xswiftc -use-ld=lld -Xlinker -z -Xlinker now -Xlinker -z -Xlinker noexecstack
 
+# Fully static Linux build via the Swift Static Linux SDK (musl, no dynamic deps)
+SWIFT_STATIC_SDK = $(if $(filter x86_64,$(shell uname -m)),x86_64,aarch64)-swift-linux-musl
+SWIFT_BUILD_FLAGS_LINUX_STATIC = --product xcodegen -c release --swift-sdk $(SWIFT_STATIC_SDK)
+
 build-linux:
 	swift build $(SWIFT_BUILD_FLAGS_LINUX)
+
+build-linux-static:
+	swift build $(SWIFT_BUILD_FLAGS_LINUX_STATIC)
 
 uninstall:
 	rm -f $(INSTALL_PATH)
