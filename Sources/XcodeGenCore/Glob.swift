@@ -8,6 +8,10 @@
 
 import Foundation
 
+#if os(Linux) && canImport(Musl)
+import Musl
+#endif
+
 public let GlobBehaviorBashV3 = Glob.Behavior(
     supportsGlobstar: false,
     includesFilesFromRootOfGlobstar: false,
@@ -118,7 +122,12 @@ public class Glob: Collection {
 
     // MARK: Private
 
+    #if os(Linux) && canImport(Musl)
+    // musl's glob() doesn't support brace expansion (GLOB_BRACE is a GNU extension)
+    private var globalFlags = GLOB_TILDE | GLOB_MARK
+    #else
     private var globalFlags = GLOB_TILDE | GLOB_BRACE | GLOB_MARK
+    #endif
 
     private func executeGlob(pattern: UnsafePointer<CChar>, gt: UnsafeMutablePointer<glob_t>) -> Bool {
         glob(pattern, globalFlags, nil, gt) == 0
