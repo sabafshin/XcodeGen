@@ -12,3 +12,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Yams >= 5.2 rejects duplicate keys, which XcodeGen's settings merging
+      # relies on. Our fork (sabafshin/Yams) is pinned at 5.1.5 for the musl
+      # static Linux build — never auto-bump.
+      - dependency-name: "yams"
+      - dependency-name: "github.com/jpsim/yams"
+      - dependency-name: "github.com/sabafshin/yams"
